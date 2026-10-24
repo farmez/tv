@@ -5,8 +5,6 @@
   "appName": "Accueil",
   "packageType": "app",
   "appPath": "index.html",
-  "main": "index.html",
-  "type": "module",
   "keys": [
     "MediaPlayPause",
     "MediaPlay",
