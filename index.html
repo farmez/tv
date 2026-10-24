@@ -114,6 +114,10 @@
   #reglages.ouvert { display: flex; }
   #reglages h2 { font-size: 34px; font-weight: 300; margin-bottom: 5px; }
   #reglages .aide { color: var(--faible); font-size: 18px; margin-bottom: 22px; }
+  #diag { font-family: ui-monospace, Consolas, monospace; font-size: 15px; line-height: 1.5;
+          color: #9fe0b0; background: rgba(255,255,255,.05); border: 1px solid var(--bord);
+          border-radius: 8px; padding: 12px 16px; margin-bottom: 18px;
+          white-space: pre-wrap; max-height: 30vh; overflow: hidden; }
   #liste { flex: 1; overflow: hidden; }
   #liste-inner { transition: transform .28s cubic-bezier(.22,.61,.36,1); }
   .ligne { display: flex; align-items: center; gap: 16px; padding: 12px 16px;
@@ -161,6 +165,7 @@
 <div id="reglages">
   <h2>Choisir les applications du dock</h2>
   <div class="aide">Haut / Bas pour parcourir &middot; OK pour ajouter ou retirer &middot; Retour pour fermer</div>
+  <pre id="diag"></pre>
   <div id="liste"><div id="liste-inner"></div></div>
 </div>
 
@@ -331,22 +336,44 @@ function majHorloge() {
 /* ===================================================================
    5. Applications
    =================================================================== */
+/* Journal de diagnostic, consultable depuis le panneau des reglages.
+   Sert a savoir pourquoi les icones reelles n'apparaissent pas. */
+var DIAG = [];
+function diag(l) { DIAG.push(l); }
+
 function chargerApps() {
+  diag('tizen           : ' + (typeof tizen));
+  diag('tizen.application : ' + (typeof tizen !== 'undefined' && tizen ? (typeof tizen.application) : 'n/a'));
+  diag('getAppsInfo     : ' + (surTizen ? (typeof tizen.application.getAppsInfo) : 'n/a'));
+
   if (surTizen && typeof tizen.application.getAppsInfo === 'function') {
     try {
       tizen.application.getAppsInfo(function (l) {
-        var v = [];
+        diag('getAppsInfo     : OK, ' + l.length + ' applis brutes');
+        var v = [], avecIcone = 0;
         for (var i = 0; i < l.length; i++) {
           if (l[i].show === false) continue;
-          v.push({ id: l[i].id, nom: l[i].name, icone: l[i].iconPath || null });
+          var ip = l[i].iconPath || null;
+          if (ip) avecIcone++;
+          if (v.length < 3) diag('  ex. ' + l[i].name + ' -> iconPath=' + (ip === null ? 'NULL' : ip));
+          v.push({ id: l[i].id, nom: l[i].name, icone: ip });
         }
+        diag('visibles        : ' + v.length + ', dont ' + avecIcone + ' avec iconPath');
         v.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
         apps = v.length ? v : REPLI.map(norm);
+        if (!v.length) diag('--> liste vide, repli sur la liste codee en dur');
         apresApps();
-      }, function () { apps = REPLI.map(norm); apresApps(); });
+      }, function (e) {
+        diag('getAppsInfo     : ECHEC ' + (e && e.name ? e.name : '') + ' ' + (e && e.message ? e.message : ''));
+        diag('--> repli sur la liste codee en dur (sans icones)');
+        apps = REPLI.map(norm); apresApps();
+      });
       return;
-    } catch (e) {}
+    } catch (e) {
+      diag('getAppsInfo     : EXCEPTION ' + (e && e.message ? e.message : e));
+    }
   }
+  diag('--> API indisponible, repli sur la liste codee en dur (sans icones)');
   apps = REPLI.map(norm);
   apresApps();
 }
@@ -391,9 +418,16 @@ function dessiner() {
     var e = document.createElement('div');
     e.className = 'app';
     var h = '<div class="fondu" style="background:linear-gradient(145deg,' + t[0] + ',' + t[1] + ')"></div>';
-    if (a.icone) { h += '<img src="' + a.icone + '" alt="">'; }
-    else { h += '<span class="lettre">' + a.nom.charAt(0).toUpperCase() + '</span>' +
-                '<span class="etiq">' + a.nom + '</span>'; }
+    if (a.icone) {
+      // Premiere tentative avec le chemin tel quel ; en cas d'echec on
+      // reessaie en file://, puis on retombe sur la lettre.
+      h += '<img src="' + a.icone + '" alt="" data-brut="' + a.icone + '" onerror="iconeKo(this)">';
+      h += '<span class="lettre" style="display:none">' + a.nom.charAt(0).toUpperCase() + '</span>';
+      h += '<span class="etiq" style="display:none">' + a.nom + '</span>';
+    } else {
+      h += '<span class="lettre">' + a.nom.charAt(0).toUpperCase() + '</span>' +
+           '<span class="etiq">' + a.nom + '</span>';
+    }
     e.innerHTML = h;
     dk.appendChild(e);
   }
@@ -406,6 +440,22 @@ function dessiner() {
 
   majFocus();
 }
+
+/* Repli en cascade d'une icone : chemin brut -> file:// -> lettre. */
+window.iconeKo = function (img) {
+  var brut = img.getAttribute('data-brut') || '';
+  if (!img.getAttribute('data-essai') && brut.charAt(0) === '/') {
+    img.setAttribute('data-essai', '1');
+    diag('icone KO en direct, essai file:// pour ' + brut);
+    img.src = 'file://' + brut;
+    return;
+  }
+  diag('icone KO definitivement : ' + brut);
+  img.style.display = 'none';
+  var p = img.parentNode;
+  var l = p.querySelector('.lettre'); if (l) l.style.display = '';
+  var e = p.querySelector('.etiq');   if (e) e.style.display = '';
+};
 
 function lesCartes() { return document.querySelectorAll('#cartes .carte'); }
 function lesApps()   { return document.querySelectorAll('#dock .app'); }
@@ -461,6 +511,7 @@ function toast(m) {
 function ouvrirReglages() {
   reglagesOuverts = true; iListe = 0;
   document.getElementById('reglages').classList.add('ouvert');
+  document.getElementById('diag').textContent = DIAG.join('\n');
   dessinerListe();
 }
 function fermerReglages() {
