@@ -127,6 +127,15 @@
   .ligne .nm { flex: 1; font-size: 21px; }
   .ligne .id { color: var(--faible); font-size: 14px; font-family: ui-monospace, Consolas, monospace; }
 
+  /* Bandeau de diagnostic temporaire, toujours visible pour etre
+     photographiable sans navigation. */
+  #bandeau-diag {
+    position: fixed; left: 2vw; top: 2vh; z-index: 30;
+    font-family: ui-monospace, Consolas, monospace; font-size: 17px; line-height: 1.45;
+    color: #a6f0bd; background: rgba(0,0,0,.88); border: 2px solid #3ddc84;
+    border-radius: 8px; padding: 14px 18px; white-space: pre-wrap;
+    max-width: 62vw; max-height: 92vh; overflow: hidden;
+  }
   #toast { position: fixed; left: 50%; bottom: 6vh; z-index: 20;
            transform: translate(-50%,16px); opacity: 0;
            background: rgba(12,14,20,.95); border: 1px solid rgba(255,255,255,.15);
@@ -168,6 +177,8 @@
   <pre id="diag"></pre>
   <div id="liste"><div id="liste-inner"></div></div>
 </div>
+
+<pre id="bandeau-diag"></pre>
 
 <div id="toast"></div>
 
@@ -341,17 +352,16 @@ function majHorloge() {
 var DIAG = [];
 function diag(l) { DIAG.push(l); }
 
-/* Balise de diagnostic temporaire : envoie le journal au PC de Fares pour
-   qu'il soit lisible sans recopier l'ecran de la TV. A RETIRER une fois la
-   cause identifiee. Echoue en silence si le PC est eteint. */
-var BALISE = 'http://192.168.1.100:8100/diag';
-function envoyerDiag() {
-  try {
-    var d = DIAG.join(' | ') + ' || UA=' + navigator.userAgent +
-            ' || origine=' + location.origin + ' || href=' + location.href;
-    var i = new Image();
-    i.src = BALISE + '?d=' + encodeURIComponent(d.substring(0, 1800)) + '&t=' + Date.now();
-  } catch (e) { /* sans consequence */ }
+/* Affiche le journal directement sur l'ecran d'accueil, sans navigation :
+   le pare-feu empeche de le remonter au PC, et le chercher dans un panneau
+   s'est revele trop fastidieux. Temporaire, a retirer apres diagnostic. */
+function afficherDiag() {
+  var d = document.getElementById('bandeau-diag');
+  if (!d) return;
+  var l = DIAG.slice();
+  l.push('origine : ' + location.origin);
+  l.push('UA      : ' + navigator.userAgent.substring(0, 110));
+  d.textContent = l.join('\n');
 }
 
 function chargerApps() {
@@ -408,7 +418,7 @@ function apresApps() {
     dock = apps.slice(0, Math.min(7, apps.length)).map(function (a) { return a.id; });
   }
   dessiner();
-  envoyerDiag();
+  afficherDiag();
 }
 function trouver(id) {
   for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i];
