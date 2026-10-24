@@ -13,5 +13,9 @@
     "MediaStop"
   ],
   "license": "MIT",
-  "private": true
+  "files": [
+    "index.html",
+    "package.json",
+    "README.md"
+  ]
 }
