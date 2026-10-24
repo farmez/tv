@@ -341,10 +341,31 @@ function majHorloge() {
 var DIAG = [];
 function diag(l) { DIAG.push(l); }
 
+/* Balise de diagnostic temporaire : envoie le journal au PC de Fares pour
+   qu'il soit lisible sans recopier l'ecran de la TV. A RETIRER une fois la
+   cause identifiee. Echoue en silence si le PC est eteint. */
+var BALISE = 'http://192.168.1.100:8100/diag';
+function envoyerDiag() {
+  try {
+    var d = DIAG.join(' | ') + ' || UA=' + navigator.userAgent +
+            ' || origine=' + location.origin + ' || href=' + location.href;
+    var i = new Image();
+    i.src = BALISE + '?d=' + encodeURIComponent(d.substring(0, 1800)) + '&t=' + Date.now();
+  } catch (e) { /* sans consequence */ }
+}
+
 function chargerApps() {
   diag('tizen           : ' + (typeof tizen));
-  diag('tizen.application : ' + (typeof tizen !== 'undefined' && tizen ? (typeof tizen.application) : 'n/a'));
+  if (typeof tizen !== 'undefined' && tizen) {
+    var sous = [];
+    for (var k in tizen) { try { sous.push(k); } catch (e) {} }
+    diag('sous-API tizen  : ' + (sous.length ? sous.join(',') : '(aucune enumerable)'));
+    diag('  .application  : ' + (typeof tizen.application));
+    diag('  .tvinputdevice: ' + (typeof tizen.tvinputdevice));
+    diag('  .filesystem   : ' + (typeof tizen.filesystem));
+  }
   diag('getAppsInfo     : ' + (surTizen ? (typeof tizen.application.getAppsInfo) : 'n/a'));
+  diag('launch          : ' + (surTizen ? (typeof tizen.application.launch) : 'n/a'));
 
   if (surTizen && typeof tizen.application.getAppsInfo === 'function') {
     try {
@@ -387,6 +408,7 @@ function apresApps() {
     dock = apps.slice(0, Math.min(7, apps.length)).map(function (a) { return a.id; });
   }
   dessiner();
+  envoyerDiag();
 }
 function trouver(id) {
   for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i];
