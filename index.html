@@ -6,167 +6,130 @@
 <title>Accueil</title>
 <style>
   /* ------------------------------------------------------------------
-     Contraintes materielles : Samsung UE43TU7002, SoC Kant-SU2 BASIC.
-     On s'interdit backdrop-filter et filter:blur en plein ecran, et on
-     n'anime que transform et opacity (composites par le GPU).
+     Samsung UE43TU7002 - SoC Kant-SU2 BASIC, le plus faible du chassis.
+     Regles tenues partout :
+       - jamais de backdrop-filter ni de blur plein ecran
+       - on n'anime que transform et opacity (composes par le GPU)
+       - pas d'ombre animee, pas de reflow pendant la navigation
      ------------------------------------------------------------------ */
   :root {
-    --marge: 4vw;              /* securite overscan */
+    --marge: 3.6vw;
     --focus: #ffffff;
-    --texte: rgba(255,255,255,.96);
-    --texte-faible: rgba(255,255,255,.60);
-    --tuile: rgba(255,255,255,.10);
-    --tuile-bord: rgba(255,255,255,.14);
-    --r: 14px;
+    --texte: rgba(255,255,255,.97);
+    --faible: rgba(255,255,255,.58);
+    --surface: rgba(255,255,255,.07);
+    --bord: rgba(255,255,255,.12);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%; height: 100%; overflow: hidden;
-    background: #05070c;
-    color: var(--texte);
+    background: #070910; color: var(--texte);
     font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 24px;
     -webkit-font-smoothing: antialiased;
     cursor: none;
   }
 
-  /* ---------- fonds nature : deux calques en fondu croise ---------- */
-  #fonds { position: fixed; inset: 0; z-index: 0; background: #05070c; }
-  .fond {
-    position: absolute; inset: 0;
-    opacity: 0;
-    transition: opacity 2.5s ease-in-out;
-    transform: translateZ(0);
-  }
+  /* ---------- fond : deux calques en fondu croise ---------- */
+  #fonds { position: fixed; inset: 0; z-index: 0; background: #070910; }
+  .fond { position: absolute; inset: 0; opacity: 0;
+          transition: opacity 2.2s ease-in-out; transform: translateZ(0); }
   .fond.actif { opacity: 1; }
   .fond svg { width: 100%; height: 100%; display: block; }
-  .fond .kb {
-    width: 100%; height: 100%;
-    transform-origin: 50% 55%;
-    animation: kenburns 48s ease-in-out infinite alternate;
+  .fond .kb { width: 100%; height: 100%; transform-origin: 50% 50%;
+              animation: kb 52s ease-in-out infinite alternate; }
+  @keyframes kb {
+    from { transform: scale(1.00) translate3d(0,0,0); }
+    to   { transform: scale(1.07) translate3d(-1%, -.6%, 0); }
   }
-  @keyframes kenburns {
-    from { transform: scale(1.00) translate3d(0, 0, 0); }
-    to   { transform: scale(1.09) translate3d(-1.2%, -0.8%, 0); }
-  }
-  /* voile de lisibilite : degrade peint, pas de filtre */
-  #voile {
-    position: fixed; inset: 0; z-index: 1; pointer-events: none;
-    background:
-      linear-gradient(to bottom, rgba(0,0,0,.55) 0%, rgba(0,0,0,.10) 32%, rgba(0,0,0,.10) 48%, rgba(0,0,0,.78) 100%);
-  }
+  #voile { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(5,6,12,.70) 0%, rgba(5,6,12,.30) 30%,
+                rgba(5,6,12,.55) 62%, rgba(5,6,12,.93) 100%); }
 
-  /* ---------- mise en page ---------- */
-  #ecran {
-    position: relative; z-index: 2;
-    height: 100%;
-    padding: var(--marge);
-    display: flex; flex-direction: column;
-  }
+  #ecran { position: relative; z-index: 2; height: 100%;
+           padding: var(--marge) var(--marge) 2.4vh;
+           display: flex; flex-direction: column; }
 
+  /* ---------- en-tete ---------- */
   header { display: flex; align-items: flex-start; justify-content: space-between; }
-  #heure { font-size: 76px; font-weight: 200; letter-spacing: -2px; line-height: 1; }
-  #date  { font-size: 22px; color: var(--texte-faible); margin-top: 10px; text-transform: capitalize; }
-  #marque { font-size: 19px; color: var(--texte-faible); letter-spacing: 3px; text-transform: uppercase; }
+  #titre { font-size: 46px; font-weight: 300; letter-spacing: -.8px; line-height: 1; }
+  #onglets { display: flex; gap: 30px; margin-top: 16px;
+             font-size: 19px; color: var(--faible); }
+  #onglets .actif { color: var(--texte); }
+  #coin { text-align: right; }
+  #heure { font-size: 38px; font-weight: 200; letter-spacing: -.5px; line-height: 1; }
+  #date { font-size: 16px; color: var(--faible); margin-top: 7px; text-transform: capitalize; }
 
-  #milieu { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-  .titre-section { font-size: 17px; letter-spacing: 2.5px; text-transform: uppercase;
-                   color: var(--texte-faible); margin-bottom: 18px; }
+  /* ---------- bandeau de contenu ---------- */
+  #contenu { flex: 1; display: flex; align-items: center; }
+  .piste { overflow: hidden; padding: 26px 0 26px 22px; margin: 0 0 0 -22px; width: 100%; }
+  #cartes { display: flex; gap: 20px; align-items: flex-start;
+            transition: transform .34s cubic-bezier(.22,.61,.36,1); }
 
-  /* ---------- rangee d'applications ---------- */
-  /* La piste rogne le defilement horizontal. Elle recoit une marge interieure
-     pour que l'agrandissement de la tuile visee et son halo ne soient pas
-     coupes : overflow rogne au bord de la boite de padding, pas du contenu.
-     La marge negative annule le decalage visuel. */
-  .piste { overflow: hidden; padding: 30px 0 30px 20px; margin: -30px 0 -30px -20px; }
-  #rangee { display: flex; gap: 22px; transition: transform .38s cubic-bezier(.22,.61,.36,1); }
-  .tuile {
-    flex: 0 0 auto;
-    width: 272px; height: 153px;
-    border-radius: var(--r);
-    background: var(--tuile);
-    border: 1px solid var(--tuile-bord);
-    position: relative; overflow: hidden;
-    transition: transform .22s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, border-color .22s ease;
-    transform: translateZ(0);
+  .carte { flex: 0 0 auto; position: relative; transform: translateZ(0);
+           transition: transform .22s cubic-bezier(.22,.61,.36,1); }
+  .carte .vignette {
+    position: relative; overflow: hidden; border-radius: 12px;
+    border: 1px solid var(--bord);
+    transition: box-shadow .22s ease, border-color .22s ease;
   }
-  .tuile .fondu { position: absolute; inset: 0; opacity: .92; }
-  .tuile img { position: absolute; top: 50%; left: 50%; width: 76px; height: 76px;
-               transform: translate(-50%, -60%); border-radius: 12px; }
-  .tuile .lettre {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -62%);
-    font-size: 46px; font-weight: 300; color: #fff; opacity: .95;
-  }
-  .tuile .nom {
-    position: absolute; left: 0; right: 0; bottom: 12px; text-align: center;
-    font-size: 19px; font-weight: 400; color: #fff;
-    text-shadow: 0 1px 4px rgba(0,0,0,.6);
-    padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .tuile.vis {
-    transform: scale(1.11) translateZ(0);
-    border-color: var(--focus);
-    box-shadow: 0 0 0 3px var(--focus), 0 18px 40px rgba(0,0,0,.55);
-    z-index: 3;
-  }
-  .tuile .etoile { position: absolute; top: 9px; right: 11px; font-size: 17px;
-                   color: #ffd479; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  .carte.grande .vignette { width: 660px; height: 372px; }
+  .carte.petite .vignette { width: 236px; height: 332px; }
+  .carte .vignette svg { width: 100%; height: 100%; display: block; }
+  .carte .nom { margin-top: 13px; font-size: 21px; font-weight: 400;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .carte.petite .nom { font-size: 18px; max-width: 236px; }
+  .carte .meta { margin-top: 5px; font-size: 15px; color: var(--faible);
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .carte.petite .meta { max-width: 236px; }
+  .carte.vis { transform: scale(1.035) translateZ(0); }
+  .carte.vis .vignette { border-color: var(--focus);
+    box-shadow: 0 0 0 3px var(--focus), 0 20px 46px rgba(0,0,0,.6); }
 
   /* ---------- dock ---------- */
-  #zone-dock { margin-top: 4px; }
-  #dock { display: flex; gap: 20px; align-items: flex-end; }
-  .fav {
-    flex: 0 0 auto; width: 104px; height: 104px; border-radius: 22px;
-    background: var(--tuile); border: 1px solid var(--tuile-bord);
-    position: relative; overflow: hidden;
-    transition: transform .22s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, border-color .22s ease;
-    transform: translateZ(0);
+  #dock-zone { padding-top: 10px; }
+  .piste-dock { overflow: hidden; padding: 20px 0 14px 20px; margin: 0 0 0 -20px; }
+  #dock { display: flex; gap: 18px; align-items: center;
+          transition: transform .34s cubic-bezier(.22,.61,.36,1); }
+  .app {
+    flex: 0 0 auto; width: 158px; height: 88px; border-radius: 13px;
+    background: var(--surface); border: 1px solid var(--bord);
+    position: relative; overflow: hidden; transform: translateZ(0);
+    transition: transform .2s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease, border-color .2s ease;
   }
-  .fav .fondu { position: absolute; inset: 0; opacity: .92; }
-  .fav img { position: absolute; top: 50%; left: 50%; width: 58px; height: 58px;
-             transform: translate(-50%, -50%); border-radius: 11px; }
-  .fav .lettre { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -52%);
-                 font-size: 38px; font-weight: 300; }
-  .fav.vis {
-    transform: scale(1.14) translateZ(0);
-    border-color: var(--focus);
-    box-shadow: 0 0 0 3px var(--focus), 0 16px 34px rgba(0,0,0,.55);
-  }
-  #dock-vide { color: var(--texte-faible); font-size: 20px; }
+  .app .fondu { position: absolute; inset: 0; opacity: .9; }
+  .app img { position: absolute; top: 50%; left: 50%; width: 64px; height: 64px;
+             transform: translate(-50%,-50%); border-radius: 11px; }
+  .app .lettre { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+                 font-size: 34px; font-weight: 300; }
+  .app .etiq { position: absolute; left: 0; right: 0; bottom: 7px; text-align: center;
+               font-size: 13px; color: rgba(255,255,255,.9); padding: 0 8px;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+               text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  .app.vis { transform: scale(1.09) translateZ(0); border-color: var(--focus);
+             box-shadow: 0 0 0 3px var(--focus), 0 14px 32px rgba(0,0,0,.55); }
 
-  /* ---------- panneau reglages ---------- */
-  #reglages {
-    position: fixed; inset: 0; z-index: 10;
-    background: #04060b;
-    display: none; flex-direction: column; padding: var(--marge);
-  }
+  /* ---------- panneau favoris ---------- */
+  #reglages { position: fixed; inset: 0; z-index: 10; background: #05070c;
+              display: none; flex-direction: column; padding: var(--marge); }
   #reglages.ouvert { display: flex; }
-  #reglages h2 { font-size: 36px; font-weight: 300; margin-bottom: 6px; }
-  #reglages p.aide { color: var(--texte-faible); font-size: 20px; margin-bottom: 26px; }
+  #reglages h2 { font-size: 34px; font-weight: 300; margin-bottom: 5px; }
+  #reglages .aide { color: var(--faible); font-size: 18px; margin-bottom: 22px; }
   #liste { flex: 1; overflow: hidden; }
-  #liste-inner { transition: transform .3s cubic-bezier(.22,.61,.36,1); }
-  .ligne {
-    display: flex; align-items: center; gap: 18px;
-    padding: 14px 18px; border-radius: 10px; margin-bottom: 6px;
-    border: 1px solid transparent;
-  }
-  .ligne.vis { background: rgba(255,255,255,.12); border-color: var(--focus); }
-  .ligne .case { width: 30px; font-size: 22px; color: #ffd479; }
-  .ligne .nm { flex: 1; font-size: 23px; }
-  .ligne .id { color: var(--texte-faible); font-size: 16px; font-family: ui-monospace, Consolas, monospace; }
+  #liste-inner { transition: transform .28s cubic-bezier(.22,.61,.36,1); }
+  .ligne { display: flex; align-items: center; gap: 16px; padding: 12px 16px;
+           border-radius: 9px; margin-bottom: 5px; border: 1px solid transparent; }
+  .ligne.vis { background: rgba(255,255,255,.11); border-color: var(--focus); }
+  .ligne .case { width: 26px; font-size: 20px; color: #ffd479; }
+  .ligne .nm { flex: 1; font-size: 21px; }
+  .ligne .id { color: var(--faible); font-size: 14px; font-family: ui-monospace, Consolas, monospace; }
 
-  /* ---------- message transitoire ---------- */
-  #toast {
-    position: fixed; left: 50%; bottom: 7vh; z-index: 20;
-    transform: translate(-50%, 18px); opacity: 0;
-    background: rgba(12,14,20,.94); border: 1px solid rgba(255,255,255,.16);
-    padding: 15px 28px; border-radius: 10px; font-size: 21px;
-    transition: opacity .25s ease, transform .25s ease;
-    max-width: 72vw; text-align: center;
-  }
-  #toast.vu { opacity: 1; transform: translate(-50%, 0); }
-  #indice { position: fixed; right: var(--marge); bottom: 2.2vh; z-index: 5;
-            font-size: 16px; color: rgba(255,255,255,.42); letter-spacing: .4px; }
+  #toast { position: fixed; left: 50%; bottom: 6vh; z-index: 20;
+           transform: translate(-50%,16px); opacity: 0;
+           background: rgba(12,14,20,.95); border: 1px solid rgba(255,255,255,.15);
+           padding: 14px 26px; border-radius: 9px; font-size: 19px;
+           transition: opacity .22s ease, transform .22s ease;
+           max-width: 70vw; text-align: center; }
+  #toast.vu { opacity: 1; transform: translate(-50%,0); }
 </style>
 </head>
 <body>
@@ -177,261 +140,228 @@
 <div id="ecran">
   <header>
     <div>
+      <div id="titre">Pour vous</div>
+      <div id="onglets"><span class="actif">Explorer</span><span>Films</span><span>Series</span></div>
+    </div>
+    <div id="coin">
       <div id="heure">--:--</div>
       <div id="date">&nbsp;</div>
     </div>
-    <div id="marque">Accueil</div>
   </header>
 
-  <div id="milieu">
-    <div class="titre-section">Applications</div>
-    <div class="piste">
-      <div id="rangee"></div>
-    </div>
+  <div id="contenu">
+    <div class="piste"><div id="cartes"></div></div>
   </div>
 
-  <div id="zone-dock">
-    <div class="titre-section">Favoris</div>
-    <div id="dock"></div>
+  <div id="dock-zone">
+    <div class="piste-dock"><div id="dock"></div></div>
   </div>
 </div>
 
 <div id="reglages">
-  <h2>Choisir les favoris</h2>
-  <p class="aide">Haut / Bas pour parcourir &nbsp;&middot;&nbsp; OK pour ajouter ou retirer du dock &nbsp;&middot;&nbsp; Retour pour fermer</p>
+  <h2>Choisir les applications du dock</h2>
+  <div class="aide">Haut / Bas pour parcourir &middot; OK pour ajouter ou retirer &middot; Retour pour fermer</div>
   <div id="liste"><div id="liste-inner"></div></div>
 </div>
 
 <div id="toast"></div>
-<div id="indice">Haut/Bas : changer de rangee &nbsp;&middot;&nbsp; OK : ouvrir &nbsp;&middot;&nbsp; Retour : quitter</div>
 
 <script>
 "use strict";
 
 /* ===================================================================
-   1. Decors nature, dessines en SVG.
-      Un JPEG 4K couterait un decodage que ce SoC n'a pas a offrir ;
-      ces scenes pesent quelques kilo-octets et montent en GPU direct.
+   1. Decors de fond, en SVG vectoriel.
+      Choix assume : une photo 4K couterait un decodage que ce SoC n'a
+      pas a offrir. Ces scenes pesent quelques Ko et montent en GPU.
    =================================================================== */
 var DECORS = [
-  // --- Aurore boreale ---
   '<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
-  '<defs><linearGradient id="a1" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#050b1b"/><stop offset="48%" stop-color="#0a2340"/><stop offset="100%" stop-color="#071526"/></linearGradient>' +
-  '<linearGradient id="a2" x1="0" y1="0" x2="1" y2="0">' +
-  '<stop offset="0%" stop-color="#2ad17f" stop-opacity="0"/><stop offset="35%" stop-color="#2ad17f" stop-opacity=".55"/>' +
-  '<stop offset="62%" stop-color="#6ee7c8" stop-opacity=".40"/><stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient>' +
-  '<linearGradient id="a3" x1="0" y1="0" x2="1" y2="0">' +
-  '<stop offset="10%" stop-color="#a855f7" stop-opacity="0"/><stop offset="50%" stop-color="#5eead4" stop-opacity=".30"/>' +
-  '<stop offset="90%" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>' +
-  '<rect width="1920" height="1080" fill="url(#a1)"/>' +
-  '<circle cx="320" cy="150" r="1.6" fill="#fff" opacity=".85"/><circle cx="640" cy="90" r="1.2" fill="#fff" opacity=".65"/>' +
-  '<circle cx="1180" cy="130" r="1.7" fill="#fff" opacity=".8"/><circle cx="1520" cy="78" r="1.3" fill="#fff" opacity=".6"/>' +
-  '<circle cx="880" cy="210" r="1.1" fill="#fff" opacity=".5"/><circle cx="1720" cy="190" r="1.5" fill="#fff" opacity=".7"/>' +
-  '<path d="M-60,330 C260,170 620,420 980,250 C1300,100 1620,330 1990,190 L1990,520 C1600,620 1240,430 960,520 C640,620 280,480 -60,580 Z" fill="url(#a2)"/>' +
-  '<path d="M-60,430 C300,300 700,520 1060,380 C1380,260 1680,440 1990,340 L1990,560 C1640,660 1300,500 1000,580 C680,660 300,560 -60,640 Z" fill="url(#a3)"/>' +
-  '<path d="M0,760 L250,600 L420,700 L640,540 L860,710 L1060,620 L1300,760 L1520,640 L1750,780 L1920,690 L1920,1080 L0,1080 Z" fill="#061020"/>' +
-  '<path d="M0,880 L300,780 L560,870 L820,760 L1080,880 L1360,790 L1650,900 L1920,820 L1920,1080 L0,1080 Z" fill="#03080f"/>' +
-  '</svg>',
+  '<defs><linearGradient id="f1" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0%" stop-color="#060d1e"/><stop offset="50%" stop-color="#0b2440"/><stop offset="100%" stop-color="#06131f"/></linearGradient>' +
+  '<linearGradient id="f2" x1="0" y1="0" x2="1" y2="0">' +
+  '<stop offset="5%" stop-color="#2ad17f" stop-opacity="0"/><stop offset="40%" stop-color="#2ad17f" stop-opacity=".40"/>' +
+  '<stop offset="70%" stop-color="#6ee7c8" stop-opacity=".28"/><stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient></defs>' +
+  '<rect width="1920" height="1080" fill="url(#f1)"/>' +
+  '<circle cx="340" cy="140" r="1.5" fill="#fff" opacity=".8"/><circle cx="700" cy="88" r="1.2" fill="#fff" opacity=".6"/>' +
+  '<circle cx="1240" cy="124" r="1.6" fill="#fff" opacity=".75"/><circle cx="1620" cy="76" r="1.3" fill="#fff" opacity=".55"/>' +
+  '<path d="M-60,320 C280,170 640,410 1000,250 C1320,110 1640,320 1990,190 L1990,510 C1600,610 1240,420 960,510 C640,610 280,470 -60,570 Z" fill="url(#f2)"/>' +
+  '<path d="M0,770 L260,610 L430,710 L650,550 L870,720 L1070,630 L1310,770 L1530,650 L1760,790 L1920,700 L1920,1080 L0,1080 Z" fill="#050e1c"/>' +
+  '<path d="M0,890 L310,790 L570,880 L830,770 L1090,890 L1370,800 L1660,910 L1920,830 L1920,1080 L0,1080 Z" fill="#030810"/></svg>',
 
-  // --- Vallee brumeuse au lever du soleil ---
   '<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
-  '<defs><linearGradient id="b1" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#1b2a4a"/><stop offset="40%" stop-color="#8a6b7a"/>' +
-  '<stop offset="68%" stop-color="#e09a6a"/><stop offset="100%" stop-color="#f6c48a"/></linearGradient>' +
-  '<radialGradient id="b2" cx="50%" cy="50%" r="50%">' +
-  '<stop offset="0%" stop-color="#fff3d6" stop-opacity=".95"/><stop offset="55%" stop-color="#ffcf8f" stop-opacity=".35"/>' +
-  '<stop offset="100%" stop-color="#ffcf8f" stop-opacity="0"/></radialGradient></defs>' +
-  '<rect width="1920" height="1080" fill="url(#b1)"/>' +
-  '<circle cx="1180" cy="690" r="330" fill="url(#b2)"/><circle cx="1180" cy="690" r="54" fill="#fff6e2" opacity=".96"/>' +
-  '<path d="M0,700 L280,520 L470,620 L700,470 L900,610 L1150,500 L1400,640 L1650,540 L1920,660 L1920,1080 L0,1080 Z" fill="#5d4a5e" opacity=".92"/>' +
-  '<path d="M0,760 L220,660 L520,760 L780,650 L1020,770 L1320,670 L1600,780 L1920,700 L1920,1080 L0,1080 Z" fill="#46384d" opacity=".9"/>' +
-  '<rect x="0" y="790" width="1920" height="52" fill="#f3d3ae" opacity=".30"/>' +
-  '<path d="M0,870 L340,800 L660,880 L980,810 L1300,890 L1620,820 L1920,886 L1920,1080 L0,1080 Z" fill="#2c2436" opacity=".95"/>' +
-  '<rect x="0" y="910" width="1920" height="44" fill="#e8c9a8" opacity=".22"/>' +
-  '<path d="M0,980 L420,930 L820,990 L1240,935 L1620,995 L1920,950 L1920,1080 L0,1080 Z" fill="#1a1522"/>' +
-  '</svg>',
+  '<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0%" stop-color="#171331"/><stop offset="42%" stop-color="#53305c"/>' +
+  '<stop offset="72%" stop-color="#a9566a"/><stop offset="100%" stop-color="#d98a63"/></linearGradient>' +
+  '<radialGradient id="g2" cx="50%" cy="50%" r="50%">' +
+  '<stop offset="0%" stop-color="#ffeccd" stop-opacity=".85"/><stop offset="100%" stop-color="#ffbe84" stop-opacity="0"/></radialGradient></defs>' +
+  '<rect width="1920" height="1080" fill="url(#g1)"/>' +
+  '<circle cx="1210" cy="640" r="300" fill="url(#g2)"/><circle cx="1210" cy="640" r="52" fill="#fff4e0" opacity=".92"/>' +
+  '<path d="M0,690 L300,510 L480,610 L710,470 L910,600 L1160,500 L1410,630 L1660,540 L1920,650 L1920,1080 L0,1080 Z" fill="#4d3d52" opacity=".9"/>' +
+  '<path d="M0,790 L240,680 L540,780 L800,670 L1040,790 L1340,690 L1620,800 L1920,720 L1920,1080 L0,1080 Z" fill="#332940" opacity=".92"/>' +
+  '<path d="M0,900 L350,820 L670,900 L990,830 L1310,905 L1630,840 L1920,900 L1920,1080 L0,1080 Z" fill="#1d1728"/></svg>',
 
-  // --- Ocean au crepuscule ---
   '<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
-  '<defs><linearGradient id="c1" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#15123a"/><stop offset="35%" stop-color="#4a2f5e"/>' +
-  '<stop offset="58%" stop-color="#b4566b"/><stop offset="72%" stop-color="#e98a62"/></linearGradient>' +
-  '<linearGradient id="c2" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#c06a6a"/><stop offset="30%" stop-color="#3c2a50"/><stop offset="100%" stop-color="#0d0a1c"/></linearGradient>' +
-  '<radialGradient id="c3" cx="50%" cy="50%" r="50%">' +
-  '<stop offset="0%" stop-color="#ffe6c4" stop-opacity=".9"/><stop offset="100%" stop-color="#ffb37a" stop-opacity="0"/></radialGradient></defs>' +
-  '<rect width="1920" height="1080" fill="url(#c1)"/>' +
-  '<circle cx="760" cy="620" r="260" fill="url(#c3)"/>' +
-  '<path d="M560,620 a200,200 0 0 1 400,0 Z" fill="#ffeacb" opacity=".95"/>' +
-  '<rect x="0" y="618" width="1920" height="462" fill="url(#c2)"/>' +
-  '<ellipse cx="760" cy="700" rx="150" ry="9" fill="#ffd9a8" opacity=".55"/>' +
-  '<ellipse cx="760" cy="760" rx="210" ry="8" fill="#ffd9a8" opacity=".38"/>' +
-  '<ellipse cx="760" cy="830" rx="280" ry="7" fill="#ffd9a8" opacity=".26"/>' +
-  '<ellipse cx="760" cy="910" rx="350" ry="6" fill="#ffd9a8" opacity=".17"/>' +
-  '<ellipse cx="760" cy="1000" rx="430" ry="5" fill="#ffd9a8" opacity=".10"/>' +
-  '<path d="M0,618 L150,600 L260,618 Z" fill="#120f22"/><path d="M1700,618 L1830,592 L1920,618 Z" fill="#120f22"/>' +
-  '</svg>',
-
-  // --- Foret de pins dans la brume ---
-  '<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
-  '<defs><linearGradient id="d1" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#9fb2ac"/><stop offset="45%" stop-color="#6f8a85"/><stop offset="100%" stop-color="#2d4440"/></linearGradient>' +
-  '<linearGradient id="d2" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#cfdad6" stop-opacity=".40"/><stop offset="100%" stop-color="#cfdad6" stop-opacity="0"/></linearGradient></defs>' +
-  '<rect width="1920" height="1080" fill="url(#d1)"/>' +
-  '<g fill="#5b7a74" opacity=".55">' +
-  '<path d="M120,760 l54,-250 l54,250 Z"/><path d="M330,790 l48,-230 l48,230 Z"/><path d="M560,750 l58,-270 l58,270 Z"/>' +
-  '<path d="M820,795 l50,-235 l50,235 Z"/><path d="M1080,755 l56,-265 l56,265 Z"/><path d="M1340,790 l50,-240 l50,240 Z"/>' +
-  '<path d="M1600,760 l55,-260 l55,260 Z"/><path d="M1810,795 l48,-225 l48,225 Z"/></g>' +
-  '<rect x="0" y="690" width="1920" height="200" fill="url(#d2)"/>' +
-  '<g fill="#38524d" opacity=".82">' +
-  '<path d="M40,900 l66,-300 l66,300 Z"/><path d="M290,930 l60,-280 l60,280 Z"/><path d="M570,890 l70,-320 l70,320 Z"/>' +
-  '<path d="M860,935 l62,-285 l62,285 Z"/><path d="M1150,895 l68,-310 l68,310 Z"/><path d="M1440,930 l60,-290 l60,290 Z"/>' +
-  '<path d="M1720,900 l66,-300 l66,300 Z"/></g>' +
-  '<rect x="0" y="840" width="1920" height="150" fill="#dfe8e5" opacity=".20"/>' +
-  '<g fill="#1d2e2b">' +
-  '<path d="M-20,1080 l84,-360 l84,360 Z"/><path d="M250,1080 l78,-330 l78,330 Z"/><path d="M540,1080 l88,-380 l88,380 Z"/>' +
-  '<path d="M840,1080 l80,-340 l80,340 Z"/><path d="M1150,1080 l86,-370 l86,370 Z"/><path d="M1460,1080 l78,-335 l78,335 Z"/>' +
-  '<path d="M1760,1080 l84,-355 l84,355 Z"/></g>' +
-  '</svg>',
-
-  // --- Dunes au couchant ---
-  '<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
-  '<defs><linearGradient id="e1" x1="0" y1="0" x2="0" y2="1">' +
-  '<stop offset="0%" stop-color="#2a2550"/><stop offset="42%" stop-color="#9c5a6a"/>' +
-  '<stop offset="74%" stop-color="#e89a63"/><stop offset="100%" stop-color="#f4c78c"/></linearGradient>' +
-  '<radialGradient id="e2" cx="50%" cy="50%" r="50%">' +
-  '<stop offset="0%" stop-color="#fff0cf" stop-opacity=".85"/><stop offset="100%" stop-color="#ffbf80" stop-opacity="0"/></radialGradient></defs>' +
-  '<rect width="1920" height="1080" fill="url(#e1)"/>' +
-  '<circle cx="620" cy="560" r="300" fill="url(#e2)"/><circle cx="620" cy="560" r="62" fill="#fff4dd" opacity=".95"/>' +
-  '<path d="M0,700 C320,620 560,760 900,690 C1240,620 1520,740 1920,660 L1920,1080 L0,1080 Z" fill="#c2794f" opacity=".92"/>' +
-  '<path d="M0,800 C280,740 620,860 980,790 C1320,724 1600,830 1920,770 L1920,1080 L0,1080 Z" fill="#8f5240" opacity=".95"/>' +
-  '<path d="M0,910 C360,860 700,960 1060,900 C1400,844 1660,930 1920,884 L1920,1080 L0,1080 Z" fill="#5c3430"/>' +
-  '<path d="M0,1010 C420,980 820,1046 1240,1004 C1560,972 1760,1020 1920,998 L1920,1080 L0,1080 Z" fill="#331e21"/>' +
-  '</svg>'
+  '<defs><linearGradient id="h1" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0%" stop-color="#8ea7a1"/><stop offset="45%" stop-color="#5f7a76"/><stop offset="100%" stop-color="#22352f"/></linearGradient>' +
+  '<linearGradient id="h2" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0%" stop-color="#c8d6d2" stop-opacity=".34"/><stop offset="100%" stop-color="#c8d6d2" stop-opacity="0"/></linearGradient></defs>' +
+  '<rect width="1920" height="1080" fill="url(#h1)"/>' +
+  '<g fill="#50706a" opacity=".5">' +
+  '<path d="M130,770 l52,-240 l52,240 Z"/><path d="M350,795 l46,-220 l46,220 Z"/><path d="M580,760 l56,-260 l56,260 Z"/>' +
+  '<path d="M840,800 l48,-225 l48,225 Z"/><path d="M1100,765 l54,-255 l54,255 Z"/><path d="M1360,795 l48,-230 l48,230 Z"/>' +
+  '<path d="M1620,770 l53,-250 l53,250 Z"/></g>' +
+  '<rect x="0" y="700" width="1920" height="190" fill="url(#h2)"/>' +
+  '<g fill="#2e4641" opacity=".8">' +
+  '<path d="M50,905 l64,-290 l64,290 Z"/><path d="M300,935 l58,-270 l58,270 Z"/><path d="M580,895 l68,-310 l68,310 Z"/>' +
+  '<path d="M870,940 l60,-275 l60,275 Z"/><path d="M1160,900 l66,-300 l66,300 Z"/><path d="M1450,935 l58,-280 l58,280 Z"/>' +
+  '<path d="M1730,905 l64,-290 l64,290 Z"/></g>' +
+  '<g fill="#16241f">' +
+  '<path d="M-20,1080 l82,-350 l82,350 Z"/><path d="M260,1080 l76,-320 l76,320 Z"/><path d="M550,1080 l86,-370 l86,370 Z"/>' +
+  '<path d="M850,1080 l78,-330 l78,330 Z"/><path d="M1160,1080 l84,-360 l84,360 Z"/><path d="M1470,1080 l76,-325 l76,325 Z"/>' +
+  '<path d="M1770,1080 l82,-345 l82,345 Z"/></g></svg>'
 ];
 
-/* Teintes de repli pour les tuiles, quand la TV ne fournit pas d'icone. */
-var TEINTES = [
-  ['#3b5bdb','#1c3aa9'], ['#c92a2a','#7d1414'], ['#1098ad','#07617a'],
-  ['#5f3dc4','#3b2191'], ['#e8590c','#9c3503'], ['#2b8a3e','#13521f'],
-  ['#b5179e','#6a0f5c'], ['#495057','#212529']
+/* Visuels de contenu : compositions abstraites generees, sans reseau.
+   Chaque entree reçoit une palette et une geometrie differentes. */
+var PALETTES = [
+  ['#1b2a5e','#4a2d73','#c0455f'], ['#0f3b3a','#1d6b5e','#d4a03c'],
+  ['#3b1230','#7a2347','#e0633f'], ['#111d3a','#2b4a7a','#6fb3d2'],
+  ['#2a1407','#7a3a14','#d98b3a'], ['#13233a','#355070','#b56576']
 ];
 
-/* Repli utilise en apercu navigateur, ou si getAppsInfo echoue.
-   Sur la TV, la liste reelle des applis installees remplace celle-ci. */
+function visuel(i, w, h) {
+  var p = PALETTES[i % PALETTES.length];
+  var id = 'v' + i;
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0%" stop-color="' + p[0] + '"/><stop offset="55%" stop-color="' + p[1] + '"/>' +
+    '<stop offset="100%" stop-color="' + p[2] + '"/></linearGradient>' +
+    '<radialGradient id="' + id + 'r" cx="30%" cy="25%" r="70%">' +
+    '<stop offset="0%" stop-color="#ffffff" stop-opacity=".22"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>' +
+    '<rect width="' + w + '" height="' + h + '" fill="url(#' + id + ')"/>' +
+    '<rect width="' + w + '" height="' + h + '" fill="url(#' + id + 'r)"/>' +
+    '<circle cx="' + (w * 0.74) + '" cy="' + (h * 0.30) + '" r="' + (h * 0.20) + '" fill="#fff" opacity=".10"/>' +
+    '<path d="M0,' + (h * 0.78) + ' Q' + (w * 0.28) + ',' + (h * 0.60) + ' ' + (w * 0.55) + ',' + (h * 0.76) +
+      ' T' + w + ',' + (h * 0.68) + ' L' + w + ',' + h + ' L0,' + h + ' Z" fill="#000" opacity=".30"/>' +
+    '<path d="M0,' + (h * 0.90) + ' Q' + (w * 0.34) + ',' + (h * 0.76) + ' ' + (w * 0.64) + ',' + (h * 0.90) +
+      ' T' + w + ',' + (h * 0.84) + ' L' + w + ',' + h + ' L0,' + h + ' Z" fill="#000" opacity=".42"/></svg>';
+}
+
+/* Le bandeau de contenu. Modifiable librement : c'est de la donnee. */
+var CONTENU = [
+  { nom: 'Grand format',   meta: 'Selection - a ouvrir avec OK' },
+  { nom: 'A decouvrir',    meta: 'Suggestion' },
+  { nom: 'Reprendre',      meta: 'En cours' },
+  { nom: 'Ma liste',       meta: 'Enregistres' }
+];
+
+/* Repli pour l'apercu navigateur. Sur la TV, getAppsInfo() fournit la
+   vraie liste et surtout les vraies icones des applis installees. */
 var REPLI = [
-  { id: '111299001912',  nom: 'YouTube' },
   { id: '11101200001',   nom: 'Netflix' },
+  { id: '111299001912',  nom: 'YouTube' },
   { id: '3201910019365', nom: 'Prime Video' },
   { id: '3201901017640', nom: 'Disney+' },
+  { id: '3201706012478', nom: 'HBO Max' },
+  { id: '3201807016597', nom: 'Apple TV' },
   { id: '3201606009684', nom: 'Spotify' },
-  { id: '3201512006963', nom: 'Plex' },
-  { id: '3202203026841', nom: 'Twitch' },
-  { id: '3201807016597', nom: 'Apple TV' }
+  { id: '3201512006963', nom: 'Plex' }
+];
+
+var TEINTES = [
+  ['#c92a2a','#7d1414'], ['#d93636','#8c1c1c'], ['#1098ad','#07617a'],
+  ['#3b5bdb','#1c3aa9'], ['#5f3dc4','#3b2191'], ['#495057','#212529'],
+  ['#2b8a3e','#13521f'], ['#e8590c','#9c3503']
 ];
 
 /* ===================================================================
    2. Etat
    =================================================================== */
 var surTizen = (typeof tizen !== 'undefined' && tizen && tizen.application);
-var apps = [];
-var favoris = [];
-var zone = 'grille';      // 'grille' | 'dock'
-var iGrille = 0, iDock = 0, iListe = 0;
+var apps = [], dock = [];
+var zone = 'contenu';
+var iCarte = 0, iDock = 0, iListe = 0;
 var reglagesOuverts = false;
-var decorCourant = -1, calqueA, calqueB, calqueActif = 0;
+var iDecor = -1, cA, cB, actif = 0;
+var CLE = 'accueil.dock.v2';
 
-var CLE_FAV = 'accueil.favoris.v1';
-
-function lireFavoris() {
-  try {
-    var brut = window.localStorage.getItem(CLE_FAV);
-    if (brut) return JSON.parse(brut);
-  } catch (e) { /* stockage indisponible : on continue sans */ }
+function lireDock() {
+  try { var b = window.localStorage.getItem(CLE); if (b) return JSON.parse(b); }
+  catch (e) {}
   return null;
 }
-function ecrireFavoris() {
-  try { window.localStorage.setItem(CLE_FAV, JSON.stringify(favoris)); }
-  catch (e) { /* sans consequence : les favoris ne survivront pas au redemarrage */ }
+function ecrireDock() {
+  try { window.localStorage.setItem(CLE, JSON.stringify(dock)); } catch (e) {}
 }
 
 /* ===================================================================
-   3. Fonds
+   3. Fond
    =================================================================== */
 function initFonds() {
-  var hote = document.getElementById('fonds');
-  calqueA = document.createElement('div'); calqueA.className = 'fond';
-  calqueB = document.createElement('div'); calqueB.className = 'fond';
-  hote.appendChild(calqueA); hote.appendChild(calqueB);
+  var h = document.getElementById('fonds');
+  cA = document.createElement('div'); cA.className = 'fond';
+  cB = document.createElement('div'); cB.className = 'fond';
+  h.appendChild(cA); h.appendChild(cB);
   decorSuivant();
-  setInterval(decorSuivant, 45000);
+  setInterval(decorSuivant, 50000);
 }
 function decorSuivant() {
-  decorCourant = (decorCourant + 1) % DECORS.length;
-  var cible = (calqueActif === 0) ? calqueB : calqueA;
-  var sortant = (calqueActif === 0) ? calqueA : calqueB;
-  cible.innerHTML = '<div class="kb">' + DECORS[decorCourant] + '</div>';
+  iDecor = (iDecor + 1) % DECORS.length;
+  var cible = (actif === 0) ? cB : cA;
+  var sortant = (actif === 0) ? cA : cB;
+  cible.innerHTML = '<div class="kb">' + DECORS[iDecor] + '</div>';
   cible.classList.add('actif');
   sortant.classList.remove('actif');
-  calqueActif = 1 - calqueActif;
+  actif = 1 - actif;
 }
 
 /* ===================================================================
-   4. Horloge  (rafraichie toutes les 15 s : seules les minutes sont
-      affichees, inutile de reveiller le CPU chaque seconde)
+   4. Horloge - toutes les 15 s, seules les minutes sont affichees
    =================================================================== */
 function majHorloge() {
   var d = new Date();
-  var hh = ('0' + d.getHours()).slice(-2);
-  var mm = ('0' + d.getMinutes()).slice(-2);
-  document.getElementById('heure').textContent = hh + ':' + mm;
-  var opts = { weekday: 'long', day: 'numeric', month: 'long' };
-  var txt;
-  try { txt = d.toLocaleDateString('fr-FR', opts); }
-  catch (e) { txt = d.toDateString(); }
-  document.getElementById('date').textContent = txt;
+  document.getElementById('heure').textContent =
+    ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  var t;
+  try { t = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+  catch (e) { t = d.toDateString(); }
+  document.getElementById('date').textContent = t;
 }
 
 /* ===================================================================
-   5. Chargement des applications
+   5. Applications
    =================================================================== */
 function chargerApps() {
   if (surTizen && typeof tizen.application.getAppsInfo === 'function') {
     try {
-      tizen.application.getAppsInfo(function (liste) {
-        var vus = [];
-        for (var i = 0; i < liste.length; i++) {
-          var a = liste[i];
-          if (a.show === false) continue;          // applis systeme masquees
-          vus.push({ id: a.id, nom: a.name, icone: a.iconPath || null });
+      tizen.application.getAppsInfo(function (l) {
+        var v = [];
+        for (var i = 0; i < l.length; i++) {
+          if (l[i].show === false) continue;
+          v.push({ id: l[i].id, nom: l[i].name, icone: l[i].iconPath || null });
         }
-        vus.sort(function (x, y) { return x.nom.localeCompare(y.nom, 'fr'); });
-        apps = vus.length ? vus : REPLI.map(normRepli);
-        apresChargement();
-      }, function () {
-        apps = REPLI.map(normRepli); apresChargement();
-      });
+        v.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+        apps = v.length ? v : REPLI.map(norm);
+        apresApps();
+      }, function () { apps = REPLI.map(norm); apresApps(); });
       return;
-    } catch (e) { /* API absente malgre la detection */ }
+    } catch (e) {}
   }
-  apps = REPLI.map(normRepli);
-  apresChargement();
+  apps = REPLI.map(norm);
+  apresApps();
 }
-function normRepli(x) { return { id: x.id, nom: x.nom, icone: null }; }
+function norm(x) { return { id: x.id, nom: x.nom, icone: null }; }
 
-function apresChargement() {
-  var sauv = lireFavoris();
-  if (sauv && sauv.length) {
-    // On ne garde que les favoris encore installes
-    favoris = sauv.filter(function (id) { return trouverApp(id) !== null; });
+function apresApps() {
+  var s = lireDock();
+  if (s && s.length) {
+    dock = s.filter(function (id) { return trouver(id) !== null; });
   } else {
-    favoris = apps.slice(0, Math.min(5, apps.length)).map(function (a) { return a.id; });
+    dock = apps.slice(0, Math.min(7, apps.length)).map(function (a) { return a.id; });
   }
   dessiner();
 }
-function trouverApp(id) {
+function trouver(id) {
   for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i];
   return null;
 }
@@ -439,72 +369,65 @@ function trouverApp(id) {
 /* ===================================================================
    6. Rendu
    =================================================================== */
-function vignette(a, i, grande) {
-  var t = TEINTES[i % TEINTES.length];
-  var h = '<div class="fondu" style="background:linear-gradient(145deg,' + t[0] + ',' + t[1] + ')"></div>';
-  if (a.icone) {
-    h += '<img src="' + a.icone + '" alt="">';
-  } else {
-    h += '<span class="lettre">' + a.nom.charAt(0).toUpperCase() + '</span>';
-  }
-  if (grande) {
-    if (favoris.indexOf(a.id) !== -1) h += '<span class="etoile">&#9733;</span>';
-    h += '<div class="nom">' + a.nom + '</div>';
-  }
-  return h;
-}
-
 function dessiner() {
-  var rangee = document.getElementById('rangee');
-  rangee.innerHTML = '';
-  for (var i = 0; i < apps.length; i++) {
+  var c = document.getElementById('cartes');
+  c.innerHTML = '';
+  for (var i = 0; i < CONTENU.length; i++) {
+    var grande = (i === 0);
     var d = document.createElement('div');
-    d.className = 'tuile';
-    d.innerHTML = vignette(apps[i], i, true);
-    rangee.appendChild(d);
+    d.className = 'carte ' + (grande ? 'grande' : 'petite');
+    d.innerHTML = '<div class="vignette">' + visuel(i, grande ? 660 : 236, grande ? 372 : 332) + '</div>' +
+                  '<div class="nom">' + CONTENU[i].nom + '</div>' +
+                  '<div class="meta">' + CONTENU[i].meta + '</div>';
+    c.appendChild(d);
   }
-  // tuile Favoris, toujours en fin de rangee
-  var r = document.createElement('div');
-  r.className = 'tuile';
-  r.innerHTML = '<div class="fondu" style="background:linear-gradient(145deg,#2f3540,#15181e)"></div>' +
-                '<span class="lettre">&#9733;</span><div class="nom">Favoris</div>';
-  rangee.appendChild(r);
 
-  var dock = document.getElementById('dock');
-  dock.innerHTML = '';
-  if (!favoris.length) {
-    dock.innerHTML = '<div id="dock-vide">Aucun favori &mdash; ouvre la tuile Favoris pour en choisir</div>';
-  } else {
-    for (var j = 0; j < favoris.length; j++) {
-      var af = trouverApp(favoris[j]);
-      if (!af) continue;
-      var f = document.createElement('div');
-      f.className = 'fav';
-      f.innerHTML = vignette(af, apps.indexOf(af), false);
-      dock.appendChild(f);
-    }
+  var dk = document.getElementById('dock');
+  dk.innerHTML = '';
+  for (var j = 0; j < dock.length; j++) {
+    var a = trouver(dock[j]);
+    if (!a) continue;
+    var t = TEINTES[apps.indexOf(a) % TEINTES.length];
+    var e = document.createElement('div');
+    e.className = 'app';
+    var h = '<div class="fondu" style="background:linear-gradient(145deg,' + t[0] + ',' + t[1] + ')"></div>';
+    if (a.icone) { h += '<img src="' + a.icone + '" alt="">'; }
+    else { h += '<span class="lettre">' + a.nom.charAt(0).toUpperCase() + '</span>' +
+                '<span class="etiq">' + a.nom + '</span>'; }
+    e.innerHTML = h;
+    dk.appendChild(e);
   }
+  // tuile de reglage en fin de dock
+  var r = document.createElement('div');
+  r.className = 'app';
+  r.innerHTML = '<div class="fondu" style="background:linear-gradient(145deg,#2c323c,#141820)"></div>' +
+                '<span class="lettre">&#9881;</span>';
+  dk.appendChild(r);
+
   majFocus();
 }
 
-function elemsGrille() { return document.querySelectorAll('#rangee .tuile'); }
-function elemsDock()   { return document.querySelectorAll('#dock .fav'); }
+function lesCartes() { return document.querySelectorAll('#cartes .carte'); }
+function lesApps()   { return document.querySelectorAll('#dock .app'); }
 
 function majFocus() {
-  var g = elemsGrille(), d = elemsDock(), i;
-  for (i = 0; i < g.length; i++) g[i].classList.remove('vis');
-  for (i = 0; i < d.length; i++) d[i].classList.remove('vis');
+  var c = lesCartes(), a = lesApps(), i;
+  for (i = 0; i < c.length; i++) c[i].classList.remove('vis');
+  for (i = 0; i < a.length; i++) a[i].classList.remove('vis');
 
-  if (zone === 'grille' && g.length) {
-    if (iGrille >= g.length) iGrille = g.length - 1;
-    g[iGrille].classList.add('vis');
-    // defilement : on garde la tuile visee vers le tiers gauche
-    var pas = 272 + 22;
-    var dec = Math.max(0, (iGrille - 2)) * pas;
-    document.getElementById('rangee').style.transform = 'translate3d(' + (-dec) + 'px,0,0)';
-  } else if (zone === 'dock' && d.length) {
-    if (iDock >= d.length) iDock = d.length - 1;
-    d[iDock].classList.add('vis');
+  if (zone === 'contenu' && c.length) {
+    if (iCarte >= c.length) iCarte = c.length - 1;
+    c[iCarte].classList.add('vis');
+    var dec = 0;
+    for (i = 0; i < iCarte; i++) dec += c[i].offsetWidth + 20;
+    if (iCarte === 0) dec = 0;
+    document.getElementById('cartes').style.transform = 'translate3d(' + (-dec) + 'px,0,0)';
+  } else if (zone === 'dock' && a.length) {
+    if (iDock >= a.length) iDock = a.length - 1;
+    a[iDock].classList.add('vis');
+    var pas = 158 + 18;
+    var d2 = Math.max(0, iDock - 4) * pas;
+    document.getElementById('dock').style.transform = 'translate3d(' + (-d2) + 'px,0,0)';
   }
 }
 
@@ -512,76 +435,67 @@ function majFocus() {
    7. Lancement
    =================================================================== */
 function lancer(id) {
-  var a = trouverApp(id);
+  var a = trouver(id);
   var nom = a ? a.nom : id;
   if (surTizen && typeof tizen.application.launch === 'function') {
     try {
-      tizen.application.launch(id, function () { /* ok */ },
-        function (e) { toast('Impossible d\'ouvrir ' + nom + ' (' + (e && e.name ? e.name : 'erreur') + ')'); });
+      tizen.application.launch(id, function () {},
+        function (e) { toast('Impossible d\'ouvrir ' + nom); });
     } catch (e) { toast('Lancement refuse pour ' + nom); }
   } else {
     toast('Apercu navigateur — sur la TV, ceci ouvrirait ' + nom);
   }
 }
 
-var minuteurToast = null;
-function toast(msg) {
+var tTo = null;
+function toast(m) {
   var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('vu');
-  if (minuteurToast) clearTimeout(minuteurToast);
-  minuteurToast = setTimeout(function () { t.classList.remove('vu'); }, 3200);
+  t.textContent = m; t.classList.add('vu');
+  if (tTo) clearTimeout(tTo);
+  tTo = setTimeout(function () { t.classList.remove('vu'); }, 3000);
 }
 
 /* ===================================================================
-   8. Panneau des favoris
+   8. Panneau du dock
    =================================================================== */
 function ouvrirReglages() {
-  reglagesOuverts = true;
-  iListe = 0;
+  reglagesOuverts = true; iListe = 0;
   document.getElementById('reglages').classList.add('ouvert');
   dessinerListe();
 }
 function fermerReglages() {
   reglagesOuverts = false;
   document.getElementById('reglages').classList.remove('ouvert');
-  ecrireFavoris();
-  dessiner();
+  ecrireDock(); dessiner();
 }
 function dessinerListe() {
   var h = '';
   for (var i = 0; i < apps.length; i++) {
     var a = apps[i];
-    var coche = (favoris.indexOf(a.id) !== -1);
     h += '<div class="ligne' + (i === iListe ? ' vis' : '') + '">' +
-         '<span class="case">' + (coche ? '&#9733;' : '&#9734;') + '</span>' +
+         '<span class="case">' + (dock.indexOf(a.id) !== -1 ? '&#9733;' : '&#9734;') + '</span>' +
          '<span class="nm">' + a.nom + '</span>' +
          '<span class="id">' + a.id + '</span></div>';
   }
-  var inner = document.getElementById('liste-inner');
-  inner.innerHTML = h;
-  var hauteurLigne = 66;
-  var visibles = Math.floor(document.getElementById('liste').clientHeight / hauteurLigne);
-  var dec = Math.max(0, iListe - visibles + 2) * hauteurLigne;
-  inner.style.transform = 'translate3d(0,' + (-dec) + 'px,0)';
+  var n = document.getElementById('liste-inner');
+  n.innerHTML = h;
+  var hl = 60;
+  var vis = Math.floor(document.getElementById('liste').clientHeight / hl);
+  n.style.transform = 'translate3d(0,' + (-Math.max(0, iListe - vis + 2) * hl) + 'px,0)';
 }
-function basculerFavori() {
+function basculer() {
   var a = apps[iListe];
   if (!a) return;
-  var p = favoris.indexOf(a.id);
+  var p = dock.indexOf(a.id);
   if (p === -1) {
-    if (favoris.length >= 8) { toast('Le dock est plein (8 maximum)'); return; }
-    favoris.push(a.id);
-  } else {
-    favoris.splice(p, 1);
-  }
+    if (dock.length >= 9) { toast('Dock plein (9 maximum)'); return; }
+    dock.push(a.id);
+  } else { dock.splice(p, 1); }
   dessinerListe();
 }
 
 /* ===================================================================
-   9. Telecommande
-      Tizen : Retour = 10009, Quitter = 10182. On garde aussi
-      Backspace/Echap pour l'apercu au navigateur.
+   9. Telecommande - Tizen : Retour = 10009
    =================================================================== */
 function surTouche(ev) {
   var k = ev.keyCode;
@@ -589,41 +503,36 @@ function surTouche(ev) {
   if (reglagesOuverts) {
     if (k === 38) { iListe = Math.max(0, iListe - 1); dessinerListe(); }
     else if (k === 40) { iListe = Math.min(apps.length - 1, iListe + 1); dessinerListe(); }
-    else if (k === 13) { basculerFavori(); }
+    else if (k === 13) { basculer(); }
     else if (k === 10009 || k === 8 || k === 27) { fermerReglages(); }
     else return;
-    ev.preventDefault();
-    return;
+    ev.preventDefault(); return;
   }
 
-  if (k === 37) {                                   // gauche
-    if (zone === 'grille') iGrille = Math.max(0, iGrille - 1);
+  if (k === 37) {
+    if (zone === 'contenu') iCarte = Math.max(0, iCarte - 1);
     else iDock = Math.max(0, iDock - 1);
-  } else if (k === 39) {                            // droite
-    if (zone === 'grille') iGrille = Math.min(elemsGrille().length - 1, iGrille + 1);
-    else iDock = Math.min(elemsDock().length - 1, iDock + 1);
-  } else if (k === 40) {                            // bas
-    if (zone === 'grille' && elemsDock().length) zone = 'dock';
-  } else if (k === 38) {                            // haut
-    if (zone === 'dock') zone = 'grille';
-  } else if (k === 13) {                            // OK
-    if (zone === 'grille') {
-      if (iGrille === apps.length) ouvrirReglages();   // derniere tuile
-      else lancer(apps[iGrille].id);
+  } else if (k === 39) {
+    if (zone === 'contenu') iCarte = Math.min(lesCartes().length - 1, iCarte + 1);
+    else iDock = Math.min(lesApps().length - 1, iDock + 1);
+  } else if (k === 40) {
+    if (zone === 'contenu' && lesApps().length) zone = 'dock';
+  } else if (k === 38) {
+    if (zone === 'dock') zone = 'contenu';
+  } else if (k === 13) {
+    if (zone === 'dock') {
+      if (iDock === dock.length) ouvrirReglages();      // tuile engrenage
+      else { var a = trouver(dock[iDock]); if (a) lancer(a.id); }
     } else {
-      var a = trouverApp(favoris[iDock]);
-      if (a) lancer(a.id);
+      toast(CONTENU[iCarte].nom);
     }
-    ev.preventDefault();
-    return;
-  } else if (k === 10009 || k === 8 || k === 27) {  // Retour
-    if (zone === 'dock') { zone = 'grille'; }
+    ev.preventDefault(); return;
+  } else if (k === 10009 || k === 8 || k === 27) {
+    if (zone === 'dock') zone = 'contenu';
     else if (surTizen && tizen.application) {
       try { tizen.application.getCurrentApplication().exit(); } catch (e) {}
     }
-  } else {
-    return;
-  }
+  } else { return; }
 
   majFocus();
   ev.preventDefault();
@@ -638,21 +547,17 @@ function demarrer() {
   setInterval(majHorloge, 15000);
   chargerApps();
   document.addEventListener('keydown', surTouche, false);
-
-  // Enregistre les touches media aupres de Tizen, si disponible
   if (typeof tizen !== 'undefined' && tizen.tvinputdevice) {
-    var voulues = ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop'];
-    for (var i = 0; i < voulues.length; i++) {
-      try { tizen.tvinputdevice.registerKey(voulues[i]); } catch (e) {}
+    var ks = ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop'];
+    for (var i = 0; i < ks.length; i++) {
+      try { tizen.tvinputdevice.registerKey(ks[i]); } catch (e) {}
     }
   }
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', demarrer);
-} else {
-  demarrer();
-}
+} else { demarrer(); }
 </script>
 </body>
 </html>
