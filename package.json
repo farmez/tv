@@ -1,0 +1,17 @@
+{
+  "name": "accueil-fares",
+  "version": "1.0.0",
+  "description": "Ecran d'accueil minimaliste style Apple TV pour Samsung Tizen via TizenBrew",
+  "appName": "Accueil",
+  "packageType": "app",
+  "main": "index.html",
+  "type": "module",
+  "keys": [
+    "MediaPlayPause",
+    "MediaPlay",
+    "MediaPause",
+    "MediaStop"
+  ],
+  "license": "MIT",
+  "private": true
+}
